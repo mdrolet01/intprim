@@ -5,8 +5,8 @@
 import numpy as np
 import scipy.linalg
 
-import intprim.constants
-import nonlinear_system
+import intprim.constants as gip_const
+import intprim.filter.spatiotemporal.nonlinear_system as nonlinear_system
 
 ##
 #   The ExtendedKalmanFilter class localizes an interaction in time and space via the extended Kalman filter.
@@ -45,23 +45,23 @@ class ExtendedKalmanFilter(nonlinear_system.NonLinearSystem):
 
         self.cyclical = cyclical
 
-        initial_phase_mean = np.array(initial_phase_mean, dtype = intprim.constants.DTYPE)
-        initial_phase_var = np.diag(initial_phase_var).astype(intprim.constants.DTYPE)
+        initial_phase_mean = np.array(initial_phase_mean, dtype = gip_const.DTYPE)
+        initial_phase_var = np.diag(initial_phase_var).astype(gip_const.DTYPE)
 
         # Initial phase is 0 while the landmarks are the mean basis weights of the demonstrations.
-        self.state_mean = np.zeros(self.state_dimension, dtype = intprim.constants.DTYPE)
+        self.state_mean = np.zeros(self.state_dimension, dtype = gip_const.DTYPE)
         self.state_mean[:self.system_size] = initial_phase_mean[:self.system_size]
-        self.state_mean[self.system_size:] = mean_basis_weights.astype(intprim.constants.DTYPE)
+        self.state_mean[self.system_size:] = mean_basis_weights.astype(gip_const.DTYPE)
 
         # Covariance starts at 0 for phase since we assume trajectories start at the initial point
         # The covariance for the basis weights is the same as computed from demonstrations
-        self.state_cov = np.zeros((self.state_dimension, self.state_dimension), dtype = intprim.constants.DTYPE)
+        self.state_cov = np.zeros((self.state_dimension, self.state_dimension), dtype = gip_const.DTYPE)
 
         # Assume discrete white noise model for the phase/phase velocity.
         self.state_cov[:self.system_size, :self.system_size] = initial_phase_var[:self.system_size, :self.system_size]
         self.state_cov[self.system_size:, self.system_size:] = cov_basis_weights
 
-        self.identity_cov = np.eye(self.state_cov.shape[0], dtype = intprim.constants.DTYPE)
+        self.identity_cov = np.eye(self.state_cov.shape[0], dtype = gip_const.DTYPE)
 
     ##
     #   Gets the mean of the internal state.
@@ -160,7 +160,7 @@ class ExtendedKalmanFilter(nonlinear_system.NonLinearSystem):
             kalman_gain = kalman_gain.dot(scipy.linalg.inv(np.dot(measurement_model, self.state_cov).dot(measurement_model.T) + measurement_noise))
 
             # Zero out the Kalman gain entries for the non-active DoFs. Since we aren't considering them we don't want them to affect the update process.
-            kalman_gain[:, nonactive_dofs] = 0.0;
+            kalman_gain[:, nonactive_dofs] = 0.0
 
             self.state_mean += np.dot(kalman_gain, measurement[measurement_idx] - predicted_measurement)
 
@@ -180,4 +180,4 @@ class ExtendedKalmanFilter(nonlinear_system.NonLinearSystem):
         if(return_phase_variance is False):
             return self.state_mean[0], self.state_mean[self.system_size:], self.state_cov[self.system_size:, self.system_size:]
         else:
-            return self.state_mean[0], self.state_cov[0, 0], self.state_mean[self.system_size:], self.state_cov[self.system_size:, self.system_size:]
+            return self.state_mean[0], self.state_mean[:], self.state_cov[:, :]

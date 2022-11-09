@@ -1,5 +1,5 @@
 import copy
-import intprim
+import intprim as intprim
 import matplotlib.pyplot as plt
 import matplotlib.animation
 import numpy as np

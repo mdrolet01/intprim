@@ -286,7 +286,7 @@ class StatCollector():
                     gen_node.set("same_mode", str(related))
                     gen_node.text = ",".join(["%.4f" % value for value in cov_values.flatten()])
 
-        out_file = open(file_name, "w")
+        out_file = open(file_name, "wb")
         out_file.write(ET.tostring(stats))
 
         print("File " + str(file_name) + " successfully exported.")

@@ -2,7 +2,7 @@
 #   This module defines a generic NonLinearSystem class for use in nonlinear spatiotemporal filtering.
 #
 #   @author Joseph Campbell <jacampb1@asu.edu>, Interactive Robotics Lab, Arizona State University
-import intprim.constants
+import intprim.constants as gip_const
 import numpy as np
 
 ##
@@ -88,7 +88,7 @@ class NonLinearSystem(object):
             [self.time_delta**4.0 / 4.0, self.time_delta**3.0 / 2.0, self.time_delta**2.0 / 2.0],
             [self.time_delta**3.0 / 2.0, self.time_delta**2.0, self.time_delta],
             [self.time_delta**2.0 / 2.0, self.time_delta, 1.0]
-        ], dtype = intprim.constants.DTYPE) * self.proc_var
+        ], dtype = gip_const.DTYPE) * self.proc_var
 
         return noise_model[:self.system_size, :self.system_size]
 

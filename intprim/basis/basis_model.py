@@ -47,7 +47,7 @@ class BasisModel(object):
 
         basis_funcs = self.get_basis_functions(x)
         for block_index in range(self._num_blocks):
-            out_array[start_row + block_index * self._degree : start_row + (block_index + 1) * self._degree, start_col + block_index : start_col + block_index + 1] = basis_funcs
+            out_array[start_row + block_index * self._degree : start_row + (block_index + 1) * self._degree, start_col + block_index : start_col + block_index + 1] = basis_funcs.reshape((-1,1))
 
         return out_array
 
@@ -88,7 +88,7 @@ class BasisModel(object):
             out_array = np.zeros((1, self._degree))
 
         out_row = start_row
-        basis_func_derivs = self.get_basis_function_derivatives(x[0])
+        basis_func_derivs = self.get_basis_function_derivatives(x)
 
         # temp_weights = self.inverse_transform(weights)
         temp_weights = weights

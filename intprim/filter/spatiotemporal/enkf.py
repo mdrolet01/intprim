@@ -5,9 +5,10 @@
 import numpy as np
 import numpy.linalg
 import scipy.linalg
+import copy
 
-import intprim.constants as constants
-import nonlinear_system
+import intprim.constants as gip_const
+import intprim.filter.spatiotemporal.nonlinear_system as nonlinear_system
 
 ##
 #   The EnsembleKalmanFilter class localizes an interaction in time and space via Monte Carlo approximation of the Kalman filter.
@@ -49,13 +50,16 @@ class EnsembleKalmanFilter(nonlinear_system.NonLinearSystem):
         self.ensemble_size = initial_ensemble.shape[0]
         self.cyclical = cyclical
 
-        initial_phase_mean = np.array(initial_phase_mean, dtype = constants.DTYPE)
-        initial_phase_var = np.diag(initial_phase_var).astype(constants.DTYPE)
+        initial_phase_mean = np.array(initial_phase_mean, dtype = gip_const.DTYPE)
+        initial_phase_var = np.diag(initial_phase_var).astype(gip_const.DTYPE)
 
         self.ensemble = np.zeros((self.state_dimension, self.ensemble_size))
         self.ensemble[:self.system_size, :] = np.random.multivariate_normal(initial_phase_mean[:self.system_size], initial_phase_var[:self.system_size, :self.system_size], size = self.ensemble_size).T
 
         self.ensemble[self.system_size:, :] = initial_ensemble.T
+
+        self.ensemble_backup = copy.deepcopy(self.ensemble)
+        self.phase = 0.0
 
     ##
     #   Calculates the unbiased sample mean of the ensemble.
@@ -113,7 +117,7 @@ class EnsembleKalmanFilter(nonlinear_system.NonLinearSystem):
             phase = orig_mean[0]
 
         # Project ensemble to measurement dimension
-        hx_matrix = np.zeros((self.measurement_dimension, self.ensemble_size), dtype = constants.DTYPE)
+        hx_matrix = np.zeros((self.measurement_dimension, self.ensemble_size), dtype = gip_const.DTYPE)
         for index in range(self.ensemble_size):
             hx_matrix[:, index] = self.basis_model.apply_coefficients(phase, ensemble[self.system_size:, index])
 
@@ -174,7 +178,7 @@ class EnsembleKalmanFilter(nonlinear_system.NonLinearSystem):
     #   @returns Scalar value containing the inferred phase, Vector of dimension D (or N+1+D if return_phase_variance is True) containing inferred mean, Matrix of dimension D x D (or N+1+D x N+1+D if return_phase_variance is True).
     def localize(self, measurement, measurement_noise, active_dofs, return_phase_variance = False):
         transition_model = self.get_transition_model()
-        hx_matrix = np.zeros((self.measurement_dimension, self.ensemble_size), dtype = constants.DTYPE)
+        hx_matrix = np.zeros((self.measurement_dimension, self.ensemble_size), dtype = gip_const.DTYPE)
 
         nonactive_dofs = np.setdiff1d(range(self.measurement_dimension), active_dofs)
 
@@ -217,6 +221,8 @@ class EnsembleKalmanFilter(nonlinear_system.NonLinearSystem):
 
             # Update the ensemble
             self.ensemble +=  kalman_gain.dot(noisy_observations.T - hx_matrix)
+            # ttt = noisy_observations.T - hx_matrix
+            # print(ttt)
 
             # If the interaction is cyclical and the mean is greater than 1.0, then subtract 1.0 from all ensemble members.
             # Some may be less than 0, but that is ok since the mean is still greater than 0.

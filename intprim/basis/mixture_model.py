@@ -2,8 +2,8 @@
 #   This module defines the MixtureModel class.
 #
 #   @author Joseph Campbell <jacampb1@asu.edu>, Interactive Robotics Lab, Arizona State University
-import basis_model
-import intprim.constants
+import intprim.basis.basis_model as basis_model
+import intprim.constants as gip_const
 import numpy as np
 import scipy.linalg
 
@@ -159,7 +159,7 @@ class MixtureModel(basis_model.BasisModel):
     #
     #   @return Vector of dimension num_observed_dof or matrix of dimension num_observed_dof x T if multiple phase values are given.
     def apply_coefficients(self, x, coefficients, deriv = False):
-        result = np.zeros(self._num_blocks, dtype = intprim.constants.DTYPE)
+        result = np.zeros(self._num_blocks, dtype = gip_const.DTYPE)
 
         start_index_blocks = 0
         start_index_degrees = 0
