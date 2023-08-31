@@ -2,8 +2,8 @@
 #   This module defines the SigmoidalModel class.
 #
 #   @author Joseph Campbell <jacampb1@asu.edu>, Interactive Robotics Lab, Arizona State University
-import intprim.basis.basis_model as basis_model
-import intprim.constants as gip_const
+from intprim.basis import basis_model
+import intprim.constants
 import numpy as np
 
 ##
@@ -23,7 +23,7 @@ class SigmoidalModel(basis_model.BasisModel):
         super(SigmoidalModel, self).__init__(degree, observed_dof_names)
 
         self.scale = scale
-        self.centers = np.linspace(start_phase, end_phase, self._degree, dtype = gip_const.DTYPE)
+        self.centers = np.linspace(start_phase, end_phase, self._degree, dtype = intprim.constants.DTYPE)
 
         self.computed_basis_values = {}
 
@@ -103,6 +103,6 @@ class SigmoidalModel(basis_model.BasisModel):
     #
     #   @return values array-like, shape(degree, num_phase_values) or array-like, shape(degree, ) if x is a scalar. The evaluated Gaussian radial basis function derivatives for the given phase value.
     def get_basis_function_derivatives(self, x, degree = None):
-        f = lambda x, c: np.exp(np.array([y - x for y in c], dtype = gip_const.DTYPE) / self.scale) / (self.scale * (np.exp(np.array([y - x for y in c], dtype = intprim.constants.DTYPE) / self.scale) + 1) ** 2)
+        f = lambda x, c: np.exp(np.array([y - x for y in c], dtype = intprim.constants.DTYPE) / self.scale) / (self.scale * (np.exp(np.array([y - x for y in c], dtype = intprim.constants.DTYPE) / self.scale) + 1) ** 2)
 
         return f(x, self.centers)

@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Import the library.
-import third_party.googleintprim as intprim
+import intprim
 
 # Set a seed for reproducibility
 np.random.seed(213413414)

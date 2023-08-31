@@ -2,8 +2,8 @@
 #   This module defines the GaussianModel class.
 #
 #   @author Joseph Campbell <jacampb1@asu.edu>, Interactive Robotics Lab, Arizona State University
-import intprim.basis.basis_model as basis_model
-import intprim.constants as gip_const
+from intprim.basis import basis_model
+import intprim.constants
 import numpy as np
 
 ##
@@ -25,7 +25,7 @@ class GaussianModel(basis_model.BasisModel):
         # The variance of each Gaussian function. Controls the width.
         self.scale = scale
         # array-like, shape (degree, ) The center of each basis function uniformly distributed over the range [start_phase, end_phase]
-        self.centers = np.linspace(start_phase, end_phase, self._degree, dtype = gip_const.DTYPE)
+        self.centers = np.linspace(start_phase, end_phase, self._degree, dtype = intprim.constants.DTYPE)
 
         # dict A hash map storing previously computed basis values. The key is the requested phase value rounded to rounding_precision, and the value is the corresponding computed basis function values for that phase.
         # The first time a phase value is received, the value is computed and stored in the map. On subsequent calls, the stored value is returned (if the phase is within 4 digits), skipping the computation.
@@ -97,6 +97,6 @@ class GaussianModel(basis_model.BasisModel):
     #
     #   @return values array-like, shape(degree, num_phase_values) or array-like, shape(degree, ) if x is a scalar. The evaluated Gaussian radial basis function derivatives for the given phase value.
     def get_basis_function_derivatives(self, x, degree = None):
-        f = lambda x, c: (np.exp(-(np.array([x - y for y in c], dtype = gip_const.DTYPE) ** 2) / (2.0 * self.scale)) * np.array([x - y for y in c], dtype = intprim.constants.DTYPE)) / -self.scale
+        f = lambda x, c: (np.exp(-(np.array([x - y for y in c], dtype = intprim.constants.DTYPE) ** 2) / (2.0 * self.scale)) * np.array([x - y for y in c], dtype = intprim.constants.DTYPE)) / -self.scale
 
         return f(x, self.centers)

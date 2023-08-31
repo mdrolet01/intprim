@@ -5,9 +5,9 @@
 import numpy as np
 import scipy.linalg
 
-import intprim.constants as gip_const
-import intprim.filter.align as align
-import intprim.filter.linear_system as linear_system
+import intprim.constants
+from intprim.filter.align import dtw
+from intprim.filter import linear_system
 
 ##
 #   The KalmanFilter class localizes an interaction in space via the extended Kalman filter.
@@ -36,7 +36,7 @@ class KalmanFilter(linear_system.LinearSystem):
                  basis_model,
                  mean_basis_weights,
                  cov_basis_weights,
-                 align_func = align.dtw.fastdtw,
+                 align_func = dtw.fastdtw,
                  iterative_alignment = False,
                  num_align_samples = 100,
                  cyclical = False):
@@ -45,22 +45,22 @@ class KalmanFilter(linear_system.LinearSystem):
         self.iterative_alignment = iterative_alignment
 
         # Initial phase is 0 while the landmarks are the mean basis weights of the demonstrations.
-        self.state_mean = np.zeros(self.state_dimension, dtype = gip_const.DTYPE)
-        self.state_mean[:] = mean_basis_weights.astype(gip_const.DTYPE)
+        self.state_mean = np.zeros(self.state_dimension, dtype = intprim.constants.DTYPE)
+        self.state_mean[:] = mean_basis_weights.astype(intprim.constants.DTYPE)
 
         # Covariance starts at 0 for phase since we assume trajectories start at the initial point
         # The covariance for the basis weights is the same as computed from demonstrations
-        self.state_cov = np.zeros((self.state_dimension, self.state_dimension), dtype = gip_const.DTYPE)
+        self.state_cov = np.zeros((self.state_dimension, self.state_dimension), dtype = intprim.constants.DTYPE)
 
         # Assume discrete white noise model for the phase/phase velocity.
         self.state_cov[:, :] = cov_basis_weights
 
-        self.identity_cov = np.eye(self.state_cov.shape[0], dtype = gip_const.DTYPE)
+        self.identity_cov = np.eye(self.state_cov.shape[0], dtype = intprim.constants.DTYPE)
 
         self.last_phase_estimate = 0.0
         self.align_func = align_func
         self.num_align_samples = num_align_samples
-        self.align_trajectory = np.zeros((self.num_align_samples, self.measurement_dimension), dtype = gip_const.DTYPE)
+        self.align_trajectory = np.zeros((self.num_align_samples, self.measurement_dimension), dtype = intprim.constants.DTYPE)
         self.previous_observations = None
 
     ##
@@ -77,9 +77,9 @@ class KalmanFilter(linear_system.LinearSystem):
     def align_observations(self, observed_trajectory, active_dofs):
         # Create a sequence from the stored basis weights.
         if(self.iterative_alignment):
-            domain = np.linspace(self.last_phase_estimate, 1.0, self.num_align_samples, dtype = gip_const.DTYPE)
+            domain = np.linspace(self.last_phase_estimate, 1.0, self.num_align_samples, dtype = intprim.constants.DTYPE)
         else:
-            domain = np.linspace(0.0, 1.0, self.num_align_samples, dtype = gip_const.DTYPE)
+            domain = np.linspace(0.0, 1.0, self.num_align_samples, dtype = intprim.constants.DTYPE)
 
         for idx in range(domain.shape[0]):
             basis_matrix = self.basis_model.get_block_diagonal_basis_matrix(domain[idx : idx + 1])

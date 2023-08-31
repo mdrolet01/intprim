@@ -2,8 +2,8 @@
 #   This module defines the PolynomialModel class.
 #
 #   @author Joseph Campbell <jacampb1@asu.edu>, Interactive Robotics Lab, Arizona State University
-import intprim.basis.basis_model as basis_model
-import intprim.constants as gip_const
+from intprim.basis import basis_model
+import intprim.constants
 import numpy as np
 
 ##
@@ -32,7 +32,7 @@ class PolynomialModel(basis_model.BasisModel):
     #   @return array-like, shape(degree, num_phase_values) or array-like, shape(degree, ) if x is a scalar. The evaluated Polynomial basis functions for the given phase value.
     #
     def get_basis_functions(self, x, degree = None):
-        f = lambda x, degree: np.array([(x - (1 - x))**d for d in range(degree)], dtype = gip_const.DTYPE)
+        f = lambda x, degree: np.array([(x - (1 - x))**d for d in range(degree)], dtype = intprim.constants.DTYPE)
 
         return f(x, self._degree)
 
@@ -51,6 +51,6 @@ class PolynomialModel(basis_model.BasisModel):
     #
     #   @return values array-like, shape(degree, num_phase_values) or array-like, shape(degree, ) if x is a scalar. The evaluated Polynomial basis function derivatives for the given phase value.
     def get_basis_function_derivatives(self, x, degree = None):
-        f = lambda x, degree: np.array([(2*d)*(2*x-1)**(d-1) for d in range(degree)], dtype = gip_const.DTYPE)
+        f = lambda x, degree: np.array([(2*d)*(2*x-1)**(d-1) for d in range(degree)], dtype = intprim.constants.DTYPE)
 
         return f(x, self._degree)

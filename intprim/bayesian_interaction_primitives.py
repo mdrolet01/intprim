@@ -3,13 +3,10 @@
 #   This module defines the BayesianInteractionPrimitive class, which is the user-facing class for deploying IP/BIP/eBIP.
 #
 #   @author Joseph Campbell <jacampb1@asu.edu>, Interactive Robotics Lab, Arizona State University
-import intprim.constants as gip_const
+import intprim.constants
 import numpy as np
 import pickle
 import sklearn.preprocessing
-from intprim.filter.ewma import ewma_vectorized
-import matplotlib.pyplot as plt
-import copy
 
 ##
 #   The BayesianInteractionPrimitive class is responsible for training an Interaction Primitive model from demonstrations as well as performing run-time inference.
@@ -26,21 +23,12 @@ class BayesianInteractionPrimitive(object):
         self.basis_model = basis_model
         self.scaling_groups = scaling_groups
 
-        self.basis_weights = np.array([], dtype = gip_const.DTYPE)
+        self.basis_weights = np.array([], dtype = intprim.constants.DTYPE)
         self.filter = None
         self.prior_fitted = False
 
         self.scalers = []
         self.init_scalers()
-        self.phase_tracker = []
-        self.plot = False
-        if self.plot:
-            self.fig = plt.figure(figsize = (10, 5))
-        self.resample_trj = None
-        self.resample_cnt = 0
-        self.yet_another_counter = 0
-        self.time_inversion = 0.0
-        self.resample_factor = 0.0
 
     ##
     #   Exports the internal state information from this model.
@@ -137,10 +125,10 @@ class BayesianInteractionPrimitive(object):
     #
     #   @return mean_trajectory Matrix of dimension D x num_samples containing the mean trajectory.
     #
-    def get_mean_trajectory(self, num_samples = gip_const.DEFAULT_NUM_SAMPLES):
+    def get_mean_trajectory(self, num_samples = intprim.constants.DEFAULT_NUM_SAMPLES):
         mean, var = self.get_basis_weight_parameters()
 
-        domain = np.linspace(0, 1, num_samples, dtype = gip_const.DTYPE)
+        domain = np.linspace(0, 1, num_samples, dtype = intprim.constants.DTYPE)
 
         return self.basis_inverse_transform(domain, mean)
 
@@ -153,7 +141,7 @@ class BayesianInteractionPrimitive(object):
     #
     #   @return approximate_trajectory Matrix of dimension D x num_samples containing the approximate trajectory.
     #
-    def get_approximate_trajectory(self, trajectory, num_samples = gip_const.DEFAULT_NUM_SAMPLES, deriv = False):
+    def get_approximate_trajectory(self, trajectory, num_samples = intprim.constants.DEFAULT_NUM_SAMPLES, deriv = False):
         # N x M matrix, N is degrees of freedom, M is number of time steps
         if(type(trajectory) != np.ndarray):
             raise TypeError("Trajectory must be a numpy array.")
@@ -163,7 +151,7 @@ class BayesianInteractionPrimitive(object):
 
         basis_weights = self.basis_transform(trajectory)
 
-        domain = np.linspace(0, 1, num_samples, dtype = gip_const.DTYPE)
+        domain = np.linspace(0, 1, num_samples, dtype = intprim.constants.DTYPE)
 
         return self.basis_inverse_transform(domain, basis_weights, deriv)
 
@@ -176,8 +164,8 @@ class BayesianInteractionPrimitive(object):
     #
     #   @return approximate_trajectory Matrix of dimension D x num_samples containing the approximate trajectory.
     #
-    def get_approximate_trajectory_derivative(self, trajectory, num_samples = gip_const.DEFAULT_NUM_SAMPLES):
-        return get_approximate_trajectory(trajectory, num_samples, deriv = True)
+    def get_approximate_trajectory_derivative(self, trajectory, num_samples = intprim.constants.DEFAULT_NUM_SAMPLES):
+        return self.get_approximate_trajectory(trajectory, num_samples, deriv = True)
 
     ##
     #   Gets the probability distribution of the trained demonstrations.
@@ -189,12 +177,12 @@ class BayesianInteractionPrimitive(object):
     #   @return upper_bound Matrix of dimension D x num_samples containing the mean + std of the distribution for every degree of freedom.
     #   @return lower_bound Matrix of dimension D x num_samples containing the mean - std of the distribution for every degree of freedom.
     #
-    def get_probability_distribution(self, num_samples = gip_const.DEFAULT_NUM_SAMPLES):
+    def get_probability_distribution(self, num_samples = intprim.constants.DEFAULT_NUM_SAMPLES):
         trajectory = np.zeros((self.basis_model.num_observed_dof, num_samples))
         upper_bound = np.zeros((self.basis_model.num_observed_dof, num_samples))
         lower_bound = np.zeros((self.basis_model.num_observed_dof, num_samples))
 
-        domain = np.linspace(0, 1, num_samples, dtype = gip_const.DTYPE)
+        domain = np.linspace(0, 1, num_samples, dtype = intprim.constants.DTYPE)
         for idx in range(num_samples):
             # In rare instances, projecting the covariance matrix can produce negative variance values in the diagonals of the projected matrix.
             # Therefore, we instead project each demonstration and manually calculate the empirical mean/covariance.
@@ -241,7 +229,7 @@ class BayesianInteractionPrimitive(object):
 
             trajectory = scaled_trajectory
 
-        domain = np.linspace(0, 1, len(trajectory[0]), dtype = gip_const.DTYPE)
+        domain = np.linspace(0, 1, len(trajectory[0]), dtype = intprim.constants.DTYPE)
         return self.basis_model.fit_basis_functions_linear_closed_form(domain, trajectory.T)
 
     ##
@@ -254,7 +242,7 @@ class BayesianInteractionPrimitive(object):
     #   @return transformed_trajectory Matrix of dimension D x T containing the transformed trajectory.
     #
     def basis_inverse_transform(self, x, weights, deriv = False):
-        trajectory = np.zeros((self.basis_model.num_observed_dof, x.shape[0]), dtype = gip_const.DTYPE)
+        trajectory = np.zeros((self.basis_model.num_observed_dof, x.shape[0]), dtype = intprim.constants.DTYPE)
 
         for idx in range(x.shape[0]):
             trajectory[:, idx] = self.basis_model.apply_coefficients(x[idx], weights, deriv)
@@ -298,7 +286,7 @@ class BayesianInteractionPrimitive(object):
     #   @return mean Vector of dimension B (or N+1+B if return_variance is True) containing the mean of the inferred state.
     #   @return var Matrix of dimension B x B (or N+1+B x N+1+B if return_variance is True) containing the covariance of the inferred state.
     #
-    def generate_probable_trajectory_recursive(self, trajectory, observation_noise, active_dofs, num_samples = gip_const.DEFAULT_NUM_SAMPLES, starting_phase = None, return_variance = False, phase_lookahead = 0.0, be_fancy=True):
+    def generate_probable_trajectory_recursive(self, trajectory, observation_noise, active_dofs, num_samples = intprim.constants.DEFAULT_NUM_SAMPLES, starting_phase = None, return_variance = False, phase_lookahead = 0.0):
         if(self.scaling_groups is not None):
             scaled_trajectory = np.zeros(trajectory.shape)
 
@@ -308,64 +296,21 @@ class BayesianInteractionPrimitive(object):
             trajectory = scaled_trajectory
 
         phase, mean, var = self.filter.localize(trajectory.T, observation_noise, active_dofs, return_phase_variance = return_variance)
-        self.phase_tracker.append(abs(mean[0]))
-
-        # Grab 5 values before even trying to correct (better for filter)
-        max_factor = 1e5
-        max_time_factor = -0.1
-        stuck_cutoff = 0.00005
-        phase_velocity = self.phase_tracker[-1]
-        # factor = 0.0
-        resample_n = 200
-        self.time_inversion *= 0.995
-        self.resample_factor *= 0.975
-        if self.time_inversion < 0.01 and False:
-            phase_velocity = self.get_velocity()
-            self.time_inversion = 0
-            # When do we considder it stuck?
-            if phase_velocity < stuck_cutoff:
-                self.time_inversion = 0.2
-                self.resample_factor = 0
-                logging.info("Resampling Trajectory at phase {:.3f}".format(phase))
 
         target_phase = starting_phase
         if(starting_phase is None):
-            target_phase = phase + phase_lookahead - self.time_inversion
+            target_phase = phase + phase_lookahead
             if(target_phase > 1.0):
                 target_phase = 1.0
             if(target_phase < 0.0):
                 target_phase = 0.0
 
-        domain = np.linspace(target_phase, 1.0, num_samples, dtype = gip_const.DTYPE)
-        if be_fancy:
-            new_mean = np.random.multivariate_normal(mean[self.filter.system_size:], var[self.filter.system_size:, self.filter.system_size:] * self.resample_factor)
-            new_trajectory = self.basis_inverse_transform(domain, new_mean)
+        # Create a sequence from the stored basis weights.
+        domain = np.linspace(target_phase, 1.0, num_samples, dtype = intprim.constants.DTYPE)
 
-            # min_force = 1000
-            # if self.resample_cnt > 0:
-            #     tmp_trajectory = np.copy(new_trajectory)        
-            #     for _ in range(3):
-            #         projected_force = np.mean(np.take(tmp_trajectory, [-2,-3, -5, -6], axis=1))
-            #         if projected_force < min_force:
-            #             min_force = projected_force
-            #             new_trajectory = np.copy(tmp_trajectory)
-            #         new_mean = np.random.multivariate_normal(mean[self.filter.system_size:], var[self.filter.system_size:, self.filter.system_size:] * self.resample_factor)
-            #         tmp_trajectory = self.basis_inverse_transform(domain, new_mean)
-        else:
-            new_trajectory = self.basis_inverse_transform(domain, mean)
-     
-        if self.plot:
-            axis = ['Phase', 'Velocity', 'Variance', 'Resampling']
-            values = [phase, phase_velocity * 1.0/0.05, var[1,1] * 1.0/0.0002, self.resample_factor * 1.0/max_factor]
-            plt.cla()
-            plt.bar(axis, values, color ='maroon', width = 0.4)
-            plt.ylim([0, 1])
-            plt.xlabel("Observed Metric")
-            plt.ylabel("Normalized Values")
-            plt.title("Interaction Primitives Live Tracker")
-            plt.pause(0.0001)
+        new_trajectory = self.basis_inverse_transform(domain, mean)
 
-        return new_trajectory, phase, self.get_velocity(), mean, var
+        return new_trajectory, phase, mean, var
 
     ##
     #   Sets the given filter as the current filter.
@@ -375,14 +320,3 @@ class BayesianInteractionPrimitive(object):
     #
     def set_filter(self, filter):
         self.filter = filter
-        self.phase_tracker = []
-        self.resample_cnt = 0
-        self.resample_trj = None
-        self.yet_another_counter = 0
-        self.time_inversion = 0.0
-
-    def get_velocity(self):
-        if len(self.phase_tracker) < 100:
-            return 1.0       
-        return np.abs(np.mean(np.diff(self.phase_tracker[-100:])))
-        return np.abs(ewma_vectorized(np.diff(self.phase_tracker[5:]), alpha=0.2)[-1])
