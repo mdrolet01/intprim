@@ -131,23 +131,21 @@ class BasisModel(object):
     def apply_coefficients(self, x, coefficients, deriv = False, tensor=False):
         if tensor:
             if coefficients.shape[0] != None:
-                bfuncs = tf.constant(self.get_basis_functions(x).T, dtype=tf.float32)
-                basis_funcs_stacked = tf.stack([bfuncs]*coefficients.shape[0])
-                cv = []
-                for row in range(coefficients.shape[0]):
-                    cv.append(tf.reshape(coefficients[row], (self._num_blocks, self._degree)).T)
-                coeffs = tf.stack(cv)
-                result = tf.matmul(tf.convert_to_tensor(basis_funcs_stacked, dtype=tf.float32), coeffs)
+                basis_funcs = tf.constant(self.get_basis_functions(x).T, dtype=tf.float32)
+                basis_funcs_stacked = tf.stack([basis_funcs]*coefficients.shape[0])
+                coefficients_batch = tf.stack([
+                    tf.reshape(coefficients[idx], (self._num_blocks, self._degree)).T \
+                    for idx in range(coefficients.shape[0])
+                ])
+                result = tf.matmul(tf.convert_to_tensor(basis_funcs_stacked, dtype=tf.float32), coefficients_batch)
             else:
                 basis_funcs_stacked = np.expand_dims(self.get_basis_functions(x), axis=-1)
-                # print('bfstacked1', basis_funcs_stacked.shape)
                 coefficients = tf.reshape(tf.convert_to_tensor(coefficients), (self._num_blocks, self._degree, -1)).T
                 result = tf.matmul(tf.convert_to_tensor(basis_funcs_stacked.T, dtype=tf.float32), coefficients)
-            print('coefficients', coefficients.shape)
         else:
-            basis_funcs = self.get_basis_functions(x)
+            basis_funcs = self.get_basis_functions(x).T
             coefficients = coefficients.reshape((self._num_blocks, self._degree)).T
-            result = np.dot(basis_funcs.T, coefficients)
+            result = np.dot(basis_funcs, coefficients)
         return result
 
     def plot(self):
