@@ -10,7 +10,7 @@ import scipy.linalg
 import scipy.optimize
 import scipy.sparse
 import sklearn.preprocessing
-import tensorflow as tf
+
 ##
 #   The BasisModel class is a base level class defining general methods that are used by all implemented basis models.
 #   This class corresponds to a shared basis space for 1 or more degrees of freedom.
@@ -128,24 +128,15 @@ class BasisModel(object):
     #   @param deriv True to use basis function derivative, False to use regular basis functions.
     #
     #   @return Vector of dimension num_observed_dof or matrix of dimension num_observed_dof x T if multiple phase values are given.
-    def apply_coefficients(self, x, coefficients, deriv = False, tensor=False):
-        if tensor:
-            if coefficients.shape[0] != None:
-                basis_funcs = tf.constant(self.get_basis_functions(x).T, dtype=tf.float32)
-                basis_funcs_stacked = tf.stack([basis_funcs]*coefficients.shape[0])
-                coefficients_batch = tf.stack([
-                    tf.reshape(coefficients[idx], (self._num_blocks, self._degree)).T \
-                    for idx in range(coefficients.shape[0])
-                ])
-                result = tf.matmul(tf.convert_to_tensor(basis_funcs_stacked, dtype=tf.float32), coefficients_batch)
-            else:
-                basis_funcs_stacked = np.expand_dims(self.get_basis_functions(x), axis=-1)
-                coefficients = tf.reshape(tf.convert_to_tensor(coefficients), (self._num_blocks, self._degree, -1)).T
-                result = tf.matmul(tf.convert_to_tensor(basis_funcs_stacked.T, dtype=tf.float32), coefficients)
+    def apply_coefficients(self, x, coefficients, deriv = False):
+        if(deriv):
+            basis_funcs = self.get_basis_function_derivatives(x)
         else:
-            basis_funcs = self.get_basis_functions(x).T
-            coefficients = coefficients.reshape((self._num_blocks, self._degree)).T
-            result = np.dot(basis_funcs, coefficients)
+            basis_funcs = self.get_basis_functions(x)
+
+        coefficients = coefficients.reshape((self._num_blocks, self._degree)).T
+        result = basis_funcs.T @ coefficients
+
         return result
 
     def plot(self):
